@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="no"><head><meta charset="utf-8"><title>F6 TV</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Jost,system-ui,sans-serif}
+#p{position:fixed;inset:0;width:100vw;height:100vh;border:0}
+#info{position:fixed;left:0;right:0;bottom:0;padding:2vh 4vw;color:#C9CDD0;font-size:1.6vw;letter-spacing:.08em;
+  background:linear-gradient(transparent,rgba(0,0,0,.85));opacity:0;transition:opacity 1.2s;pointer-events:none}
+#info b{color:#E8C77A;font-weight:500}
+#feil{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:#C9CDD0;font-size:2vw}
+#intro{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(900px 600px at 0% 0%,rgba(90,120,200,.28),transparent 60%),#10192D;transition:opacity 1.4s;color:#F5F7FA}
+#intro .seks{font-size:16vh;font-weight:300;color:#E8C77A;line-height:1;opacity:0;transform:translateY(2vh);animation:inn 1.2s .2s ease-out forwards}
+#intro .f6{margin-top:4vh;font-size:1.6vw;letter-spacing:.6em;text-transform:uppercase;color:#9fb3d9;opacity:0;animation:inn 1.2s .7s ease-out forwards}
+#intro .kanal{margin-top:1.5vh;font-size:6vw;font-weight:300;letter-spacing:.04em;color:#E8C77A;opacity:0;animation:inn 1.2s 1.1s ease-out forwards}
+#intro .linje{margin-top:3vh;width:0;height:2px;background:#E8C77A;animation:strek 2.4s 1.3s ease-in-out forwards}
+@keyframes inn{to{opacity:1;transform:none}}
+@keyframes strek{to{width:22vw}}
+</style></head><body>
+<div id="p"></div><div id="info"></div><div id="feil">F6 TV: ingen innslag i katalogen</div>
+<div id="intro"><div class="seks" id="merke">6</div><div class="f6">F6 TV</div><div class="kanal" id="kanalnavn"></div><div class="linje"></div></div>
+<script>
+// F6 TV – spiller på GitHub Pages (2026-11-25).
+// Hvorfor her: YouTube stopper musikkvideoer (feil 150) når de spilles fra http://192.168.0.203.
+// Rammen i Home Assistant (/local/f6-tv/spiller.html) sender katalogen og kommandoer hit med postMessage:
+//   {f6:'katalog', kat:{kanal, live, bytt_min, sett:[{id,artist,tittel}]}, fjernet:[id...], merke:'<url til F6-merket>'}
+//   {f6:'cmd', cmd:'neste'|'forrige'|'pause'|'fjern'}
+// Spilleren svarer: {f6:'klar'}, {f6:'spiller', tekst}, {f6:'fjern', id, tekst}
+const Q=new URLSearchParams(location.search);
+let sett=[], i=0, player, kat={}, forelder=null;
+const info=document.getElementById('info');
+function send(m){ try{ (forelder||window.parent).postMessage(Object.assign({f6x:1},m),'*'); }catch(e){} }
+function vis(s){ info.innerHTML='<b>'+esc(s.artist||'')+'</b> · '+esc(s.tittel||''); info.style.opacity=1; setTimeout(()=>info.style.opacity=0,10000);
+  send({f6:'spiller',tekst:((kat.kanal||'')+': '+(s.artist||'')+' · '+(s.tittel||'')).slice(0,250)}); }
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function bland(a){ for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];} return a; }
+function spill(){ const s=sett[i]; player.loadVideoById({videoId:s.id,startSeconds:s.start||0}); vis(s); }
+function neste(){ if(!sett.length||!player) return; i=(i+1)%sett.length; spill(); }
+function forrige(){ if(!sett.length||!player) return; i=(i-1+sett.length)%sett.length; spill(); }
+function fjern(){ const s=sett[i]; if(!s) return; send({f6:'fjern',id:s.id,tekst:((kat.kanal||'')+': '+(s.artist||'')+' · '+(s.tittel||'')).slice(0,200)});
+  sett.splice(i,1); if(!sett.length) return; i=(i-1+sett.length)%sett.length; neste(); }
+function intro(navn){ return new Promise(res=>{ const el=document.getElementById('intro');
+  if(Q.get('intro')==='0'||!navn){ el.remove(); return res(); }
+  document.getElementById('kanalnavn').textContent=navn;
+  setTimeout(()=>{ el.style.opacity=0; setTimeout(()=>el.remove(),1500); res(); },4200); }); }
+let apiKlar; const apiP=new Promise(r=>apiKlar=r); window.onYouTubeIframeAPIReady=()=>apiKlar();
+let startet=false;
+window.addEventListener('message',async ev=>{ const m=ev.data; if(!m||typeof m!=='object'||!m.f6) return; forelder=ev.source;
+  if(m.f6==='katalog'&&!startet){ startet=true; kat=m.kat||{}; const ut=new Set(m.fjernet||[]);
+    sett=(kat.sett||[]).filter(s=>s.id&&!ut.has(s.id)); if(!kat.live) bland(sett);
+    if(m.start){ const n=sett.findIndex(s=>s.id===m.start); if(n>0){ const [x]=sett.splice(n,1); sett.unshift(x);} }
+    if(m.merke){ const d=document.getElementById('merke'); d.textContent=''; const im=new Image(); im.src=m.merke; im.style.height='16vh'; d.appendChild(im); }
+    await intro(kat.kanal); start(); }
+  else if(m.f6==='cmd'){ if(m.cmd==='neste') neste(); else if(m.cmd==='forrige') forrige(); else if(m.cmd==='fjern') fjern();
+    else if(m.cmd==='pause'&&player){ player.getPlayerState()===1?player.pauseVideo():player.playVideo(); } } });
+async function start(){
+  if(!sett.length){ document.getElementById('feil').style.display='flex'; return; }
+  await apiP;
+  if(kat.bytt_min>0) setInterval(neste,kat.bytt_min*60000);
+  player=new YT.Player('p',{videoId:sett[0].id,playerVars:{autoplay:1,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,start:sett[0].start||0,origin:location.origin},
+    events:{onReady:e=>{e.target.setVolume(100); e.target.playVideo(); vis(sett[0]);},
+            onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) neste(); },
+            onError:()=>setTimeout(neste,2000)}});
+}
+send({f6:'klar'});
+setTimeout(()=>{ if(!startet) send({f6:'klar'}); },2000);
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body></html>
