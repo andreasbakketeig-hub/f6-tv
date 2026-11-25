@@ -35,10 +35,12 @@ function vis(s){ info.innerHTML='<b>'+esc(s.artist||'')+'</b> · '+esc(s.tittel|
   send({f6:'spiller',tekst:((kat.kanal||'')+': '+(s.artist||'')+' · '+(s.tittel||'')).slice(0,250)}); }
 function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function bland(a){ for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];} return a; }
-// Direktesending (kat.live eller s.live): ingen startSeconds, hopp til direktekanten når den spiller.
-const erLive=s=>!!(s&&(s.live||kat.live));
+// Direktesending: startSeconds bare når innslaget har eget start-felt. Hopp til direktekanten bare når
+// YouTube selv sier at videoen er direkte (isLive). OBS: kat.live betyr «fast rekkefølge» (rammen sender
+// alltid live:true for ferdig blandede lister) og må IKKE brukes til å avgjøre direktesending.
+const startVars=s=>(s&&s.start>0)?{startSeconds:s.start}:{};
 let kant=false;
-function spill(){ const s=sett[i]; kant=false; if(erLive(s)) player.loadVideoById({videoId:s.id}); else player.loadVideoById({videoId:s.id,startSeconds:s.start||0}); vis(s); }
+function spill(){ const s=sett[i]; kant=false; player.loadVideoById(Object.assign({videoId:s.id},startVars(s))); vis(s); }
 // Feil: maks én ventende hopp om gangen, stopp etter 5 feil på rad og vis YouTube-koden (2026-11-25).
 let feilVent=null, feilRad=0, sisteKode=null;
 function feil(kode){ sisteKode=kode; send({f6:'feilkode',kode,id:(sett[i]||{}).id});
@@ -73,10 +75,10 @@ async function start(){
   setInterval(()=>{ if(!player||!player.getPlayerState) return; const st=player.getPlayerState(), t=player.getCurrentTime?player.getCurrentTime():0;
     if(st===1){ buff=0; if(Math.abs(t-sistT)<0.5){ likT+=10; if(likT>=20){ likT=0; neste(); } } else likT=0; sistT=t; }
     else if(st===3){ buff+=10; if(buff>=30){ buff=0; neste(); } } else { likT=0; buff=0; } },10000);
-  player=new YT.Player('p',{videoId:sett[0].id,playerVars:Object.assign({autoplay:1,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,origin:location.origin},erLive(sett[0])?{}:{start:sett[0].start||0}),
+  player=new YT.Player('p',{videoId:sett[0].id,playerVars:Object.assign({autoplay:1,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,origin:location.origin},(sett[0].start>0)?{start:sett[0].start}:{}),
     events:{onReady:e=>{e.target.setVolume(100); e.target.playVideo(); vis(sett[0]);},
             onStateChange:e=>{ if(e.data===YT.PlayerState.PLAYING){ feilRad=0; document.getElementById('feil').style.display='none'; } if(e.data===YT.PlayerState.ENDED) neste();
-              if(e.data===YT.PlayerState.PLAYING&&erLive(sett[i])&&!kant){ kant=true; try{ const d=player.getDuration(); if(d>0) player.seekTo(d,true); }catch(x){} } },
+              if(e.data===YT.PlayerState.PLAYING&&!kant){ kant=true; try{ const vd=player.getVideoData(); if(vd&&vd.isLive){ const d=player.getDuration(); if(d>0) player.seekTo(d,true); } }catch(x){} } },
             onError:e=>feil(e&&e.data)}});
 }
 send({f6:'klar'});
