@@ -35,7 +35,10 @@ function vis(s){ info.innerHTML='<b>'+esc(s.artist||'')+'</b> · '+esc(s.tittel|
   send({f6:'spiller',tekst:((kat.kanal||'')+': '+(s.artist||'')+' · '+(s.tittel||'')).slice(0,250)}); }
 function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function bland(a){ for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];} return a; }
-function spill(){ const s=sett[i]; player.loadVideoById({videoId:s.id,startSeconds:s.start||0}); vis(s); }
+// Direktesending (kat.live eller s.live): ingen startSeconds, hopp til direktekanten når den spiller.
+const erLive=s=>!!(s&&(s.live||kat.live));
+let kant=false;
+function spill(){ const s=sett[i]; kant=false; if(erLive(s)) player.loadVideoById({videoId:s.id}); else player.loadVideoById({videoId:s.id,startSeconds:s.start||0}); vis(s); }
 function neste(){ if(!sett.length||!player) return; i=(i+1)%sett.length; spill(); }
 function forrige(){ if(!sett.length||!player) return; i=(i-1+sett.length)%sett.length; spill(); }
 function fjern(){ const s=sett[i]; if(!s) return; send({f6:'fjern',id:s.id,tekst:((kat.kanal||'')+': '+(s.artist||'')+' · '+(s.tittel||'')).slice(0,200)});
@@ -58,9 +61,15 @@ async function start(){
   if(!sett.length){ document.getElementById('feil').style.display='flex'; return; }
   await apiP;
   if(kat.bytt_min>0) setInterval(neste,kat.bytt_min*60000);
-  player=new YT.Player('p',{videoId:sett[0].id,playerVars:{autoplay:1,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,start:sett[0].start||0,origin:location.origin},
+  // Vakt: står bildet stille (samme tid i 20 s mens den skal spille) eller buffrer i over 30 s -> neste innslag.
+  let sistT=-1, likT=0, buff=0;
+  setInterval(()=>{ if(!player||!player.getPlayerState) return; const st=player.getPlayerState(), t=player.getCurrentTime?player.getCurrentTime():0;
+    if(st===1){ buff=0; if(Math.abs(t-sistT)<0.5){ likT+=10; if(likT>=20){ likT=0; neste(); } } else likT=0; sistT=t; }
+    else if(st===3){ buff+=10; if(buff>=30){ buff=0; neste(); } } else { likT=0; buff=0; } },10000);
+  player=new YT.Player('p',{videoId:sett[0].id,playerVars:Object.assign({autoplay:1,controls:0,rel:0,modestbranding:1,playsinline:1,iv_load_policy:3,origin:location.origin},erLive(sett[0])?{}:{start:sett[0].start||0}),
     events:{onReady:e=>{e.target.setVolume(100); e.target.playVideo(); vis(sett[0]);},
-            onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) neste(); },
+            onStateChange:e=>{ if(e.data===YT.PlayerState.ENDED) neste();
+              if(e.data===YT.PlayerState.PLAYING&&erLive(sett[i])&&!kant){ kant=true; try{ const d=player.getDuration(); if(d>0) player.seekTo(d,true); }catch(x){} } },
             onError:()=>setTimeout(neste,2000)}});
 }
 send({f6:'klar'});
