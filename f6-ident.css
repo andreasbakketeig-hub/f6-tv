@@ -1,0 +1,57 @@
+/* F6 TV – ident og kanalskift. 1em = 10 px på 1080p (settes av f6-ident.js). */
+.f6i{position:absolute;inset:0;z-index:50;overflow:hidden;pointer-events:none;
+  font-family:Jost,system-ui,sans-serif;font-weight:600;color:#F5F7FA;line-height:1;contain:strict}
+.f6i.f6i-fast{position:fixed}
+.f6i *{box-sizing:border-box}
+.f6i-bunn,.f6i-stemning,.f6i-dekke,.f6i-skygge,.f6i-slor{position:absolute;inset:0}
+.f6i-bunn{background:radial-gradient(90em 60em at 0% 0%,rgba(90,120,200,.28),rgba(90,120,200,0) 60%),#10192D;will-change:opacity}
+
+/* Stemning: kanalbildet lite og uskarpt, blåst opp ti ganger. Tegnes én gang. */
+.f6i-stemning{opacity:0;overflow:hidden;will-change:opacity}
+.f6i-uskarp{position:absolute;left:0;top:0;width:10%;height:10%;transform:scale(10);transform-origin:0 0;overflow:hidden}
+.f6i-uskarp img{position:absolute;left:-15%;top:-15%;width:130%;height:130%;object-fit:cover;filter:blur(.9em) saturate(1.15);opacity:0;transition:opacity .4s}
+.f6i-slor{background:radial-gradient(circle at 50% 46%,rgba(8,12,24,.42),rgba(8,12,24,.86) 78%)}
+.f6i img.f6i-inne{opacity:1}
+
+/* Kortet: flisen i stort */
+.f6i-kort{position:absolute;inset:0;border-radius:5em;overflow:hidden;
+  box-shadow:inset 0 0 0 .2em rgba(255,255,255,.10),inset 0 .2em 0 rgba(255,255,255,.22)}
+.f6i-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;will-change:transform}
+.f6i-grad{position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(180deg,rgba(10,15,25,.50) 0%,rgba(10,15,25,0) 30%,rgba(10,15,25,0) 62%,rgba(10,15,25,.62) 100%);
+  box-shadow:inset 0 0 0 .2em rgba(255,255,255,.10),inset 0 .2em 0 rgba(255,255,255,.22)}
+.f6i-merkelapp{position:absolute;font-size:2em;left:1.6em;top:1.6em;padding:.42em .5em .42em .72em;border-radius:.5em;letter-spacing:.22em;
+  color:#EBD277;background:rgba(10,15,25,.6);white-space:nowrap}
+.f6i-sveip{position:absolute;top:-20%;bottom:-20%;left:0;width:45%;
+  background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.16),rgba(255,255,255,0));
+  transform:translateX(-140%) skewX(-14deg);will-change:transform}
+
+/* Forside og bakside */
+.f6i-vend{position:absolute;inset:0;will-change:transform}
+.f6i-side{position:absolute;inset:0}
+.f6i-ident .f6i-vend{transform-style:preserve-3d}
+.f6i-ident .f6i-side{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.f6i-ident .f6i-bakside{transform:rotateY(180deg)}
+.f6i-rolig .f6i-bakside{opacity:0;will-change:transform,opacity}
+
+/* ── Intro ── */
+.f6i-intro .f6i-scene{position:absolute;left:50%;top:17em;width:52em;height:52em;margin-left:-26em}
+.f6i-intro .f6i-zoom{position:absolute;inset:0;perspective:160em;will-change:transform,opacity}
+.f6i-intro .f6i-forside{display:flex;align-items:center;justify-content:center;opacity:0;will-change:transform,opacity}
+.f6i-merke{width:19em;height:25.65em;fill:#E8C77A}
+.f6i-intro .f6i-tekst{position:absolute;left:0;right:0;top:72em;display:flex;flex-direction:column;align-items:center;text-align:center;will-change:opacity}
+.f6i-navn{font-size:9.6em;line-height:1.15;white-space:nowrap;text-shadow:0 .03em .18em rgba(8,12,24,.7)}
+.f6i-b{display:inline-block;opacity:0;will-change:transform,opacity}
+.f6i-linje{width:20em;height:.3em;margin-top:1.3em;border-radius:.15em;background:#E8C77A;transform:scaleX(0);will-change:transform}
+
+/* ── Kanalskift ── */
+.f6i-skift .f6i-dekke,.f6i-skift .f6i-skygge{opacity:0;will-change:opacity}
+.f6i-skift .f6i-stemning{opacity:1}
+.f6i-skift .f6i-stemning.f6i-ny{opacity:0}
+.f6i-skift .f6i-skygge{background:linear-gradient(180deg,rgba(8,12,24,0) 58%,rgba(8,12,24,.86) 100%)}
+.f6i-skift .f6i-fly{position:absolute;left:50%;top:50%;width:44em;height:44em;margin:-22em 0 0 -22em;perspective:140em;opacity:0;will-change:transform,opacity}
+.f6i-skift .f6i-tredjedel{position:absolute;left:28.6em;right:9.6em;bottom:8.6em;height:15em;display:flex;flex-direction:column;
+  justify-content:center;align-items:flex-start;opacity:0;will-change:transform,opacity}
+.f6i-f6{font-size:2em;letter-spacing:.5em;color:#EBD277;white-space:nowrap}
+.f6i-skift .f6i-navn{font-size:7.2em;margin-top:.1em}
+.f6i-skift .f6i-linje{width:14em;margin-top:.9em;transform-origin:0 50%}
